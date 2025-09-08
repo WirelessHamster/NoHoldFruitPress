@@ -1,0 +1,13 @@
+{
+    "type": "code",
+    "modid": "noholdfruitpress",
+    "name": "NoHoldFruitPress",
+    "authors": [
+        "WirelessHamster"
+    ],
+    "description": "With this mod you can shift+right-click fruitpress instead of keeping right-click pressed until it is fully screwed in",
+    "version": "0.1.0",
+    "dependencies": {
+        "game": ""
+    }
+}
