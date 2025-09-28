@@ -1,7 +1,9 @@
 ﻿using HarmonyLib;
 using System.Runtime.CompilerServices;
+using Vintagestory.API.Client;
 using Vintagestory.API.Common;
 using Vintagestory.API.MathTools;
+using Vintagestory.API.Util;
 using Vintagestory.GameContent;
 
 namespace NoHoldFruitPress.Patches
@@ -40,6 +42,28 @@ namespace NoHoldFruitPress.Patches
     internal static class FruitPressPatch
     {
         internal static ConditionalWeakTable<BlockEntityFruitPress, AutomationState> AutomatedPresses = new();
+
+
+        [HarmonyPostfix()]
+        [HarmonyPatch(typeof(BlockFruitPressTop), "GetPlacedBlockInteractionHelp")]
+        public static void ModifyGetPlacedBlockInteractionHelp(BlockFruitPressTop __instance,
+            ref WorldInteraction[] __result,
+            IWorldAccessor world, BlockSelection selection, IPlayer forPlayer)
+        {
+            BlockEntityFruitPress be =
+                world.BlockAccessor.GetBlockEntity(selection.Position.DownCopy()) as BlockEntityFruitPress;
+            if (be != null && be.CanScrew)
+            {
+                __result = __result.Append(new WorldInteraction()
+                {
+                    ActionLangCode = "noholdfruitpress:automatefruitpress",
+                    MouseButton = EnumMouseButton.Right,
+                    HotKeyCode = "sneak"
+                });
+            }
+        }
+                
+        
 
         [HarmonyPrefix()]
         [HarmonyPatch(typeof(BlockFruitPressTop), "OnBlockInteractStart")]
