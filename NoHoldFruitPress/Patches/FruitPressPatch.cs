@@ -23,7 +23,7 @@ namespace NoHoldFruitPress.Patches
         {
             if (!Active || FruitPressEntity == null) return;
 
-            if (SecondsActive < MaxActiveSeconds)
+            if (SecondsActive < MaxActiveSeconds && !FruitPressEntity.CompressAnimFinished)
             {
                 SecondsActive += dt;
                 FruitPressEntity.OnBlockInteractStep(SecondsActive, Player, EnumFruitPressSection.Screw);
@@ -33,8 +33,15 @@ namespace NoHoldFruitPress.Patches
                 Active = false;
                 FruitPressEntity.UnregisterGameTickListener(AutomationListenerId);
                 AutomationListenerId = 0;
-                FruitPressPatch.AutomatedPresses.Remove(FruitPressEntity);
+                FruitPressPatch.CleanupAutomation(FruitPressEntity);
             }
+        }
+
+        public override string ToString()
+        {
+            var playerName = Player?.PlayerName ?? "null";
+            var pressPos = FruitPressEntity?.Pos?.ToString() ?? "null";
+            return $"Active={Active}, SecondsActive={SecondsActive:0.00}, Player={playerName}, FruitPressPos={pressPos}, AutomationListenerId={AutomationListenerId}";
         }
     }
 
@@ -70,6 +77,10 @@ namespace NoHoldFruitPress.Patches
         public static bool ModifyOnBlockInteractStart(BlockFruitPressTop __instance, ref bool __result,
             IWorldAccessor world, IPlayer byPlayer, BlockSelection blockSel)
         {
+            if (CheckEmergencyUnscrew(byPlayer, world, blockSel))
+            {
+                return true;
+            }
             if (AutomateIt(byPlayer, blockSel))
             {
                 StartAutoPress(byPlayer, world, blockSel);
@@ -130,12 +141,8 @@ namespace NoHoldFruitPress.Patches
         [HarmonyPatch(typeof(BlockFruitPressTop), "OnBlockBroken")]
         public static bool ModifyOnBlockBroken(BlockFruitPressTop __instance, IWorldAccessor world, BlockPos pos)
         {
-            var be = world.BlockAccessor.GetBlockEntity(pos.DownCopy()) as BlockEntityFruitPress;
-            if (be != null)
-            {
-                AutomatedPresses.Remove(be);
-            }
-
+            var be = GetBlockEntity(world, pos);
+            CleanupAutomation(be);
             return true;
         }
 
@@ -147,12 +154,12 @@ namespace NoHoldFruitPress.Patches
                 return false;
             }
 
-            return byPlayer.Entity.Controls.ShiftKey;
+            return byPlayer.Entity.Controls.Sneak;
         }
 
         private static void StartAutoPress(IPlayer byPlayer, IWorldAccessor world, BlockSelection blockSel)
         {
-            var be = world.BlockAccessor.GetBlockEntity(blockSel.Position.DownCopy()) as BlockEntityFruitPress;
+            var be = GetBlockEntity(world, blockSel.Position);
             var state = AutomatedPresses.GetOrCreateValue(be);
             if (state.Active)
             {
@@ -168,6 +175,39 @@ namespace NoHoldFruitPress.Patches
             if (state.AutomationListenerId == 0)
             {
                 state.AutomationListenerId = be.RegisterGameTickListener(state.AutoPressTick, 25);
+            }
+        }
+
+        private static BlockEntityFruitPress GetBlockEntity(IWorldAccessor world, BlockPos blockPos)
+        {
+            return world.BlockAccessor.GetBlockEntity(blockPos.DownCopy()) as BlockEntityFruitPress;
+        }
+
+        private static bool CheckEmergencyUnscrew(IPlayer byPlayer, IWorldAccessor world, BlockSelection blockSel)
+        {
+            if (byPlayer.Entity.Controls.CtrlKey)
+            {
+                var be = GetBlockEntity(world, blockSel.Position);
+                if (be == null)
+                {
+                    return false;
+                }
+
+                if (be.CanUnscrew)
+                {
+                    CleanupAutomation(be);
+                    return true;
+                }                
+            }
+
+            return false;
+        }
+        
+        public static void CleanupAutomation(BlockEntityFruitPress be)
+        {
+            if (be != null)
+            {
+                AutomatedPresses.Remove(be);
             }
         }
     }

@@ -5,8 +5,8 @@
     "authors": [
         "WirelessHamster"
     ],
-    "description": "With this mod you can shift+right-click fruitpress instead of keeping right-click pressed until it is fully screwed in",
-    "version": "0.1.1",
+    "description": "With this mod you can sneak+right-click fruitpress instead of keeping right-click pressed until it is fully screwed in",
+    "version": "0.1.2",
     "dependencies": {
         "game": ""
     }
