@@ -23,7 +23,11 @@ namespace NoHoldFruitPress.Patches
         {
             if (!Active || FruitPressEntity == null) return;
 
-            if (SecondsActive < MaxActiveSeconds && !FruitPressEntity.CompressAnimFinished)
+            if (FruitPressEntity.CompressAnimFinished && (MaxActiveSeconds - SecondsActive) > 0.5f)
+            {
+                SecondsActive = MaxActiveSeconds - 0.3f;
+            }
+            if (SecondsActive < MaxActiveSeconds)
             {
                 SecondsActive += dt;
                 FruitPressEntity.OnBlockInteractStep(SecondsActive, Player, EnumFruitPressSection.Screw);
